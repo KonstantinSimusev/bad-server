@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from 'express'
 import { constants } from 'http2'
 import BadRequestError from '../errors/bad-request-error'
 
+import { sanitize } from '../utils/sanitize'
+
 export const uploadFile = async (
     req: Request,
     res: Response,
@@ -14,9 +16,13 @@ export const uploadFile = async (
         const fileName = process.env.UPLOAD_PATH
             ? `/${process.env.UPLOAD_PATH}/${req.file.filename}`
             : `/${req.file?.filename}`
+
+        // Санитизируем имя оригинального файла
+        const originalName = sanitize(req.file.originalname || '')
+
         return res.status(constants.HTTP_STATUS_CREATED).send({
             fileName,
-            originalName: req.file?.originalname,
+            originalName,
         })
     } catch (error) {
         return next(error)

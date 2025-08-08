@@ -13,6 +13,8 @@ import {
 } from '../middlewares/validations'
 import { Role } from '../models/user'
 
+import { validateCreateProduct } from '../validators/product' // импорт схемы Joi
+
 const productRouter = Router()
 
 productRouter.get('/', getProducts)
@@ -20,7 +22,7 @@ productRouter.post(
     '/',
     auth,
     roleGuardMiddleware(Role.Admin),
-    validateProductBody,
+    validateCreateProduct,  // валидация Joi (через celebrate)
     createProduct
 )
 productRouter.delete(
