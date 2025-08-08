@@ -1,14 +1,13 @@
 import { NextFunction, Request, Response } from 'express'
 import { constants } from 'http2'
 import { Error as MongooseError } from 'mongoose'
-import { join } from 'path'
+import { join, basename } from 'path'
+import { escape } from 'validator'
 import BadRequestError from '../errors/bad-request-error'
 import ConflictError from '../errors/conflict-error'
 import NotFoundError from '../errors/not-found-error'
 import Product from '../models/product'
 import movingFile from '../utils/movingFile'
-
-import { sanitizeObject } from '../utils/sanitize'
 
 // GET /product
 const getProducts = async (req: Request, res: Response, next: NextFunction) => {
@@ -21,6 +20,7 @@ const getProducts = async (req: Request, res: Response, next: NextFunction) => {
         const products = await Product.find({}, null, options)
         const totalProducts = await Product.countDocuments({})
         const totalPages = Math.ceil(totalProducts / Number(limit))
+
         return res.send({
             items: products,
             pagination: {
@@ -42,11 +42,17 @@ const createProduct = async (
     next: NextFunction
 ) => {
     try {
-        const cleanData = sanitizeObject(req.body) // защита от NoSQL-инъекций
-        const { image } = cleanData
+        let { title, description, category } = req.body
+        const { price, image } = req.body
 
-        // Переносим картинку из временной папки
-        if (image) {
+        // Экранирование и обрезка полей
+        title = escape(String(title)).slice(0, 100)
+        description = escape(String(description)).slice(0, 1000)
+        category = escape(String(category)).slice(0, 50)
+
+        // Безопасное имя файла
+        if (image && image.fileName) {
+            image.fileName = basename(image.fileName)
             movingFile(
                 image.fileName,
                 join(__dirname, `../public/${process.env.UPLOAD_PATH_TEMP}`),
@@ -54,7 +60,14 @@ const createProduct = async (
             )
         }
 
-        const product = await Product.create(cleanData)
+        const product = await Product.create({
+            description,
+            image,
+            category,
+            price,
+            title,
+        })
+
         return res.status(constants.HTTP_STATUS_CREATED).send(product)
     } catch (error) {
         if (error instanceof MongooseError.ValidationError) {
@@ -69,7 +82,6 @@ const createProduct = async (
     }
 }
 
-// TODO: Добавить guard admin
 // PUT /product
 const updateProduct = async (
     req: Request,
@@ -78,13 +90,25 @@ const updateProduct = async (
 ) => {
     try {
         const { productId } = req.params
-        const cleanData = sanitizeObject(req.body)
-        const { image } = cleanData
 
-        // Переносим картинку из временной папки
-        if (image) {
+        if (typeof productId !== 'string') {
+            return next(new BadRequestError('Неверный формат ID'))
+        }
+
+        const updateData = {
+            ...req.body,
+            title: escape(String(req.body.title ?? '')).slice(0, 100),
+            description: escape(String(req.body.description ?? '')).slice(0, 1000),
+            category: escape(String(req.body.category ?? '')).slice(0, 50),
+            price: req.body.price ?? null,
+        }
+
+        if (req.body.image && req.body.image.fileName) {
+            const safeFileName = basename(req.body.image.fileName)
+            updateData.image = { ...req.body.image, fileName: safeFileName }
+
             movingFile(
-                image.fileName,
+                safeFileName,
                 join(__dirname, `../public/${process.env.UPLOAD_PATH_TEMP}`),
                 join(__dirname, `../public/${process.env.UPLOAD_PATH}`)
             )
@@ -92,15 +116,10 @@ const updateProduct = async (
 
         const product = await Product.findByIdAndUpdate(
             productId,
-            {
-                $set: {
-                    ...cleanData,
-                    price: cleanData.price ? cleanData.price : null,
-                    image: cleanData.image ? cleanData.image : undefined,
-                },
-            },
+            { $set: updateData },
             { runValidators: true, new: true }
         ).orFail(() => new NotFoundError('Нет товара по заданному id'))
+
         return res.send(product)
     } catch (error) {
         if (error instanceof MongooseError.ValidationError) {
@@ -118,7 +137,6 @@ const updateProduct = async (
     }
 }
 
-// TODO: Добавить guard admin
 // DELETE /product
 const deleteProduct = async (
     req: Request,
@@ -127,9 +145,15 @@ const deleteProduct = async (
 ) => {
     try {
         const { productId } = req.params
+
+        if (typeof productId !== 'string') {
+            return next(new BadRequestError('Неверный формат ID'))
+        }
+
         const product = await Product.findByIdAndDelete(productId).orFail(
             () => new NotFoundError('Нет товара по заданному id')
         )
+
         return res.send(product)
     } catch (error) {
         if (error instanceof MongooseError.CastError) {

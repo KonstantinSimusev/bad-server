@@ -31,7 +31,7 @@ export type ApiListResponse<Type> = {
 }
 
 class Api {
-    protected readonly baseUrl: string
+    private readonly baseUrl: string
     protected options: RequestInit
 
     constructor(baseUrl: string, options: RequestInit = {}) {
@@ -146,26 +146,15 @@ export class WebLarekAPI extends Api implements IWebLarekAPI {
         }))
     }
 
-    private async getCsrfToken(): Promise<string> {
-        const response = await fetch(`${this.baseUrl}/csrf-token`, {
-            credentials: 'include',
-        })
-        const data = await response.json()
-        return data.csrfToken
-    }
-
-    createOrder = async (order: IOrder): Promise<IOrderResult> => {
-        const csrfToken = await this.getCsrfToken()
-
+    createOrder = (order: IOrder): Promise<IOrderResult> => {
         return this.requestWithRefresh<IOrderResult>('/order', {
             method: 'POST',
             body: JSON.stringify(order),
             headers: {
                 'Content-Type': 'application/json',
-                'x-csrf-token': csrfToken,
                 Authorization: `Bearer ${getCookie('accessToken')}`,
             },
-        })
+        }).then((data: IOrderResult) => data)
     }
 
     updateOrderStatus = (

@@ -1,0 +1,14 @@
+[
+  {
+    "email": "admin@yandex.ru",
+    "password": "admin",
+    "name": "Админ",
+    "role": "admin"
+  },
+  {
+    "email": "customer@yandex.ru",
+    "password": "customer",
+    "name": "Пользователь",
+    "role": "customer"
+  }
+]

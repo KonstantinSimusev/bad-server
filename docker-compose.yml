@@ -1,128 +1,65 @@
-services:
-  database:
-    image: mongo:latest
-    container_name: weblarek-database
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
-    volumes:
-      - db:/data/db
-      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
-    ports:
-      - 27017:27017
-    networks:
-      - backend-network
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: 'ghcr.io/${OWNER}/weblarek-backend:v1.0.0'
-    container_name: weblarek-backend
-    restart: always
-    environment:
-      PORT: ${PORT}
-      DB_ADDRESS: ${DB_ADDRESS}
-      JWT_SECRET: ${JWT_SECRET}
-      AUTH_ACCESS_TOKEN_SECRET: ${AUTH_ACCESS_TOKEN_SECRET}
-      AUTH_ACCESS_TOKEN_EXPIRY: ${AUTH_ACCESS_TOKEN_EXPIRY}
-      AUTH_REFRESH_TOKEN_SECRET: ${AUTH_REFRESH_TOKEN_SECRET}
-      AUTH_REFRESH_TOKEN_EXPIRY: ${AUTH_REFRESH_TOKEN_EXPIRY}
-      ORIGIN_ALLOW: ${ORIGIN_ALLOW}
-    volumes:
-      - ./backend/src:/app/src
-      - public:/app/src/public
-    ports:
-      - 3000:3000
-    networks:
-      - backend-network
-    depends_on:
-      - database
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: 'ghcr.io/${OWNER}/weblarek-frontend:v1.0.0'
-    container_name: weblarek-frontend
-    environment:
-      VITE_API_ORIGIN: ${VITE_API_ORIGIN}
-    volumes:
-      - frontend:/app/frontend/dist
-    networks:
-      - frontend-network
-
-  server:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    image: 'ghcr.io/${OWNER}/weblarek-nginx:v1.0.0'
-    container_name: weblarek-nginx
-    ports:
-      - 80:80
-    volumes:
-      - frontend:/var/app
-      - public:/var/public
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - frontend-network
-      - backend-network
-
-volumes:
-  frontend:
-  public:
-  db:
-
-networks:
-  backend-network:
-  frontend-network:
-
-
 # services:
-#   frontend:
-#     build:
-#       context: frontend
-#     env_file:
-#       - frontend/.env
-#     volumes:
-#       - frontend:/app/frontend/dist
-
-#   mongo:
-#     image: mongo
+#   database:
+#     image: mongo:latest
+#     container_name: weblarek-database
 #     restart: always
 #     environment:
-#       MONGO_INITDB_ROOT_USERNAME: root
-#       MONGO_INITDB_ROOT_PASSWORD: example
+#       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+#       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+#       MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
 #     volumes:
 #       - db:/data/db
+#       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 #     ports:
 #       - 27017:27017
 #     networks:
-#       - internal
+#       - backend-network
 
 #   backend:
-#     restart: always
 #     build:
-#       context: backend
-#     env_file:
-#       - backend/.env
+#       context: ./backend
+#       dockerfile: Dockerfile
+#     image: 'ghcr.io/${OWNER}/weblarek-backend:v1.0.0'
+#     container_name: weblarek-backend
+#     restart: always
+#     environment:
+#       PORT: ${PORT}
+#       DB_ADDRESS: ${DB_ADDRESS}
+#       JWT_SECRET: ${JWT_SECRET}
+#       AUTH_ACCESS_TOKEN_SECRET: ${AUTH_ACCESS_TOKEN_SECRET}
+#       AUTH_ACCESS_TOKEN_EXPIRY: ${AUTH_ACCESS_TOKEN_EXPIRY}
+#       AUTH_REFRESH_TOKEN_SECRET: ${AUTH_REFRESH_TOKEN_SECRET}
+#       AUTH_REFRESH_TOKEN_EXPIRY: ${AUTH_REFRESH_TOKEN_EXPIRY}
+#       ORIGIN_ALLOW: ${ORIGIN_ALLOW}
 #     volumes:
 #       - ./backend/src:/app/src
 #       - public:/app/src/public
 #     ports:
 #       - 3000:3000
 #     networks:
-#       - internal
+#       - backend-network
 #     depends_on:
-#       - mongo
+#       - database
+
+#   frontend:
+#     build:
+#       context: ./frontend
+#       dockerfile: Dockerfile
+#     image: 'ghcr.io/${OWNER}/weblarek-frontend:v1.0.0'
+#     container_name: weblarek-frontend
+#     environment:
+#       VITE_API_ORIGIN: ${VITE_API_ORIGIN}
+#     volumes:
+#       - frontend:/app/frontend/dist
+#     networks:
+#       - frontend-network
 
 #   server:
 #     build:
-#       context: nginx
+#       context: ./nginx
+#       dockerfile: Dockerfile
+#     image: 'ghcr.io/${OWNER}/weblarek-nginx:v1.0.0'
+#     container_name: weblarek-nginx
 #     ports:
 #       - 80:80
 #     volumes:
@@ -132,7 +69,8 @@ networks:
 #       - frontend
 #       - backend
 #     networks:
-#       - internal
+#       - frontend-network
+#       - backend-network
 
 # volumes:
 #   frontend:
@@ -140,4 +78,67 @@ networks:
 #   db:
 
 # networks:
-#   internal:
+#   backend-network:
+#   frontend-network:
+
+
+services:
+  frontend:
+    build:
+      context: frontend
+    env_file:
+      - frontend/.env
+    volumes:
+      - frontend:/app/frontend/dist
+
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - db:/data/db
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    ports:
+      - 27017:27017
+    networks:
+      - internal
+
+  backend:
+    restart: always
+    build:
+      context: backend
+    env_file:
+      - backend/.env
+    volumes:
+      - ./backend/src:/app/src
+      - public:/app/src/public
+    ports:
+      - 3000:3000
+    networks:
+      - internal
+    depends_on:
+      - mongo
+
+  server:
+    build:
+      context: nginx
+    ports:
+      - 80:80
+    volumes:
+      - frontend:/var/app
+      - public:/var/public
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - internal
+
+volumes:
+  frontend:
+  public:
+  db:
+
+networks:
+  internal:

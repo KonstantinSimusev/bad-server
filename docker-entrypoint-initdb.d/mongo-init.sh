@@ -27,5 +27,6 @@ db.createCollection("users")
 
 // Загружаем и обрабатываем данные
 const productsData = JSON.parse(require("fs").readFileSync("/docker-entrypoint-initdb.d/weblarek.products.json"))
-db.products.insertMany(productsData)
+const usersData = JSON.parse(require("fs").readFileSync("/docker-entrypoint-initdb.d/weblarek.users.json"))
+db.users.insertMany(usersData)
 EOF
