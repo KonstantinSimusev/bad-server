@@ -1,5 +1,11 @@
 # Проектная работа "WebLarek. Плохой сервер.", спринт 17
 
+## Ссылки
+
+- Репозиторий: https://github.com/KonstantinSimusev/bad-server
+- Автор: Константин
+- Когорта: 23 + фулстек, курс «Бэкенд»
+
 ## Подготовка к работе
 1. Склонировать репозиторий https://github.com/KonstantinSimusev/bad-server
 2. Запустить docker
